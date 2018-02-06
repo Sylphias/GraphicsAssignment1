@@ -29,6 +29,11 @@ Curve evalBezier( const vector< Vector3f >& P, unsigned steps )
         exit( 0 );
     }
 
+	if (steps == 0) {
+		cerr << "Number of Steps cannot be 0" << endl;
+		exit(0);
+	}
+
     // TODO:
     // You should implement this function so that it returns a Curve
     // (e.g., a vector< CurvePoint >).  The variable "steps" tells you
@@ -37,14 +42,52 @@ Curve evalBezier( const vector< Vector3f >& P, unsigned steps )
     // the SWP files are written.  But you are free to interpret this
     // variable however you want, so long as you can control the
     // "resolution" of the discretized spline curve with it.
+	// Make sure that this function computes all the appropriate
+	// Vector3fs for each CurvePoint: V,T,N,B.
+	// [NBT] should be unit and orthogonal.
 
-    // Make sure that this function computes all the appropriate
-    // Vector3fs for each CurvePoint: V,T,N,B.
-    // [NBT] should be unit and orthogonal.
+	// Also note that you may assume that all Bezier curves that you
+	// receive have G1 continuity.  Otherwise, the TNB will not be
+	// be defined at points where this does not hold.
 
-    // Also note that you may assume that all Bezier curves that you
-    // receive have G1 continuity.  Otherwise, the TNB will not be
-    // be defined at points where this does not hold.
+	//populate matrix for ease of matrix operations
+	Matrix4f geo(P[0].x(), P[1].x(), P[2].x(), P[3].x(),
+		         P[0].y(), P[1].y(), P[2].y(), P[3].y(),
+		         P[0].z(), P[1].z(), P[2].z(), P[3].z(),
+				 0, 0 ,0, 0);
+
+	Matrix4f bezSplineBasis(1,-3,3,-1,
+							0,3,-6,3,
+							0,0,3,-3,
+							0,0,0,1);
+
+	Matrix4f bezSplineBasisDiff(-3, 6, -3, 0,
+								3, -12, 9, 0,
+								0, 6, -9, 0,
+								0, 0, 3, 0);
+	Curve c;
+	float stepValue = 1.0f / steps;
+	float t = 0;
+	for (int i = 0; i < steps; i++) {
+		// calculate q
+		Vector4f powerBasis(1, t, pow(t, 2), pow(t, 3));
+		Vector4f bt(geo*bezSplineBasis*powerBasis);
+		Vector4f btPrime(geo*bezSplineBasisDiff*powerBasis);
+		
+		Vector3f Q = bt.xyz();
+		Vector3f QPrime = btPrime.xyz();
+		Vector3f tangent = QPrime.normalized();
+		Vector3f normal = tangent.normalized();
+		CurvePoint n;
+		n.V = Q;
+		n.T = tangent;
+		n.N = normal;
+		n.B = Vector3f::cross(tangent, normal);
+		c.push_back(n);
+		t += stepValue;
+
+	}
+
 
     cerr << "\t>>> evalBezier has been called with the following input:" << endl;
 
@@ -55,10 +98,8 @@ Curve evalBezier( const vector< Vector3f >& P, unsigned steps )
     }
 
     cerr << "\t>>> Steps (type steps): " << steps << endl;
-    cerr << "\t>>> Returning empty curve." << endl;
 
-    // Right now this will just return this empty curve.
-    return Curve();
+    return c;
 }
 
 Curve evalBspline( const vector< Vector3f >& P, unsigned steps )
