@@ -18,7 +18,24 @@ namespace
 
     
 }
-    
+
+
+Matrix4f bezSplineBasis(1, -3, 3, -1,
+0, 3, -6, 3,
+0, 0, 3, -3,
+0, 0, 0, 1);
+
+Matrix4f bezSplineBasisDiff(-3, 6, -3, 0,
+3, -12, 9, 0,
+0, 6, -9, 0,
+0, 0, 3, 0);
+
+Matrix4f bSplineBasis((1 / 6), -0.5f, 0.5f, (-1 / 6),
+					(4 / 6), 0, -1, 0.5f,
+					(1 / 6), 0.5f, 0.5f, -0.5f,
+					0, 0, 0, -1);
+
+
 
 Curve evalBezier( const vector< Vector3f >& P, unsigned steps )
 {
@@ -51,41 +68,49 @@ Curve evalBezier( const vector< Vector3f >& P, unsigned steps )
 	// be defined at points where this does not hold.
 
 	//populate matrix for ease of matrix operations
-	Matrix4f geo(P[0].x(), P[1].x(), P[2].x(), P[3].x(),
-		         P[0].y(), P[1].y(), P[2].y(), P[3].y(),
-		         P[0].z(), P[1].z(), P[2].z(), P[3].z(),
-				 0, 0 ,0, 0);
+	// for each 4 control points, push in a matrix4f into a vector
+	vector<Matrix4f>ctrlPts;
+	for (unsigned a = 0; a < P.size() / 3; a++) {
+		unsigned offset = a * 3;
+		Matrix4f geo(P[0+offset].x(), P[1+offset].x(), P[2+offset].x(), P[3+offset].x(),
+					 P[0+offset].y(), P[1+offset].y(), P[2+offset].y(), P[3+offset].y(),
+					 P[0+offset].z(), P[1+offset].z(), P[2+offset].z(), P[3+offset].z(),
+					 0, 0, 0, 0);
+		ctrlPts.push_back(geo);
 
-	Matrix4f bezSplineBasis(1,-3,3,-1,
-							0,3,-6,3,
-							0,0,3,-3,
-							0,0,0,1);
+	}
 
-	Matrix4f bezSplineBasisDiff(-3, 6, -3, 0,
-								3, -12, 9, 0,
-								0, 6, -9, 0,
-								0, 0, 3, 0);
+	
+
 	Curve c;
 	float stepValue = 1.0f / steps;
 	float t = 0;
-	for (int i = 0; i < steps; i++) {
-		// calculate q
-		Vector4f powerBasis(1, t, pow(t, 2), pow(t, 3));
-		Vector4f bt(geo*bezSplineBasis*powerBasis);
-		Vector4f btPrime(geo*bezSplineBasisDiff*powerBasis);
-		
-		Vector3f Q = bt.xyz();
-		Vector3f QPrime = btPrime.xyz();
-		Vector3f tangent = QPrime.normalized();
-		Vector3f normal = tangent.normalized();
-		CurvePoint n;
-		n.V = Q;
-		n.T = tangent;
-		n.N = normal;
-		n.B = Vector3f::cross(tangent, normal);
-		c.push_back(n);
-		t += stepValue;
 
+	// We begin drawing out each section of the bezier curve
+	for (unsigned sectionNum = 0; sectionNum < ctrlPts.size(); sectionNum++) {
+		// for each section we loop through each step to create the curve
+		Vector3f arbVect(30, 2, 4);
+		Vector3f oldBinormal = arbVect.normalized();
+		for (unsigned i = 0; i <= steps; i++) {
+			// calculate q
+			Vector4f powerBasis(1, t, pow(t, 2), pow(t, 3));
+			Vector4f bt(ctrlPts[sectionNum]*bezSplineBasis*powerBasis);
+			Vector4f btPrime(ctrlPts[sectionNum] *bezSplineBasisDiff*powerBasis);
+			Vector3f Q = bt.xyz();
+			Vector3f QPrime = btPrime.xyz();
+			Vector3f tangent = QPrime.normalized();
+			Vector3f normal = Vector3f::cross(oldBinormal, tangent).normalized();
+			Vector3f binormal = Vector3f::cross(tangent, normal).normalized();
+			oldBinormal = binormal;
+			CurvePoint n;
+			n.V = Q;
+			n.T = tangent;
+			n.N = normal;
+			n.B = binormal ;
+			c.push_back(n);
+			t += stepValue;
+
+		}
 	}
 
 
@@ -115,6 +140,12 @@ Curve evalBspline( const vector< Vector3f >& P, unsigned steps )
     // It is suggested that you implement this function by changing
     // basis from B-spline to Bezier.  That way, you can just call
     // your evalBezier function.
+	// Basically reuse evalBezier to draw the curve.
+	for (unsigned i = 0; i < P.size(); i++) {
+
+	}
+
+
 
     cerr << "\t>>> evalBSpline has been called with the following input:" << endl;
 
