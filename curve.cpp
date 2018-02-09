@@ -72,35 +72,50 @@ Curve evalBezier( const vector< Vector3f >& P, unsigned steps )
 	vector<Matrix4f>ctrlPts;
 	for (unsigned a = 0; a < P.size() / 3; a++) {
 		unsigned offset = a * 3;
-		Matrix4f geo(P[(0+offset)].x(), P[1+offset].x(), P[2+offset].x(), P[3+offset].x(),
-					 P[(0+offset)].y(), P[1+offset].y(), P[2+offset].y(), P[3+offset].y(),
-					 P[(0+offset)].z(), P[1+offset].z(), P[2+offset].z(), P[3+offset].z(),
+		int loopBack = 0;
+		//deal with loops, set start = end if they are approx the same.
+		if (approx(P[0], P.back()) && a == P.size()-1) {
+			loopBack = -1 * (offset + 3);
+		}
+		Matrix4f geo(P[(0+offset)].x(), P[1+offset].x(), P[2+offset].x(), P[3+offset+loopBack].x(),
+					 P[(0+offset)].y(), P[1+offset].y(), P[2+offset].y(), P[3+offset+loopBack].y(),
+					 P[(0+offset)].z(), P[1+offset].z(), P[2+offset].z(), P[3+offset+loopBack].z(),
 					 0, 0, 0, 0);
 		ctrlPts.push_back(geo);
 
 	}
 
-	
+
 
 	Curve c;
 	float stepValue = 1.0f / steps;
 
 	// We begin drawing out each section of the bezier curve
+	Vector3f oldBinormal;
 	for (unsigned sectionNum = 0; sectionNum < ctrlPts.size(); sectionNum++) {
 		float t = 0;
 		// for each section we loop through each step to create the curve
-		Vector3f arbVect(0, 0, 1);
-		Vector3f oldBinormal = arbVect.normalized();
+
+		Vector3f binormal;
+		if(sectionNum==0){
+
+			// For loops, we need to set the arbVect to the binormal of the last value... ask if its really efficient to recalc the whole thing?
+			Vector3f arbVect(0, 0, 1);
+			oldBinormal = arbVect.normalized();
+		}
+
 		for (unsigned i = 0; i <= steps; i++) {
 			// calculate q
+
 			Vector4f powerBasis(1, t, pow(t, 2), pow(t, 3));
 			Vector4f bt(ctrlPts[sectionNum]*bezSplineBasis*powerBasis);
 			Vector4f btPrime(ctrlPts[sectionNum] *bezSplineBasisDiff*powerBasis);
 			Vector3f Q = bt.xyz();
 			Vector3f QPrime = btPrime.xyz();
 			Vector3f tangent = QPrime.normalized();
+
 			Vector3f normal = Vector3f::cross(oldBinormal, tangent).normalized();
-			Vector3f binormal = Vector3f::cross(tangent, normal).normalized();
+			binormal = Vector3f::cross(tangent, normal).normalized();
 			oldBinormal = binormal;
 			CurvePoint n;
 			n.V = Q;
@@ -144,12 +159,11 @@ Curve evalBspline( const vector< Vector3f >& P, unsigned steps )
 	
 	// Breakdown bspline into segments of 4 to do basis conversion
 	bool max = false;
-	Curve c;
+	vector<Vector3f> bezierPoints;
 	for (unsigned i = 0; i < P.size() ; i++) {
 		if (max) {
 			break;
 		}
-		vector<Vector3f> bezierPoints;
 		Matrix4f bsplineSeg;
 		for (unsigned j = 0; j < 4; j++) {
 			int offsetted = i + j;// segmentize using offsets of up to 4
@@ -160,13 +174,15 @@ Curve evalBspline( const vector< Vector3f >& P, unsigned steps )
 			bsplineSeg.setCol(j, vec);
 		}
 		Matrix4f changedBasis(bsplineSeg*bSplineBasis*(bezSplineBasis.inverse()));
-		for (unsigned j = 0; j < 4; j++) {
+		int startingPt = 1;
+		if (i == 0) {
+			startingPt = 0;
+		}
+		for (unsigned j = startingPt; j < 4; j++) {
 			bezierPoints.push_back(changedBasis.getCol(j).xyz());
 		}
-		Curve evaledBez = evalBezier(bezierPoints, steps);
-		c.insert(c.end(), evaledBez.begin(), evaledBez.end());
+		
 	}
-
 	
 
     cerr << "\t>>> evalBSpline has been called with the following input:" << endl;
@@ -178,10 +194,9 @@ Curve evalBspline( const vector< Vector3f >& P, unsigned steps )
     }
 
     cerr << "\t>>> Steps (type steps): " << steps << endl;
-    cerr << "\t>>> Returning empty curve." << endl;
 
     // Return an empty curve right now.
-    return c;
+    return  evalBezier(bezierPoints, steps);;
 }
 
 Curve evalCircle( float radius, unsigned steps )

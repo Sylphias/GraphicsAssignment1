@@ -81,13 +81,30 @@ Surface makeGenCyl(const Curve &profile, const Curve &sweep )
 			surface.VV.push_back(sweep[step].V + sweep[step].B*profile[pstep].V.x() + sweep[step].N*profile[pstep].V.y());
 			Vector3f negated(profile[pstep].N);
 			negated.negate();
-			surface.VN.push_back(sweep[step].V + sweep[step].B*negated.x() + sweep[step].N*negated.y());
+			Matrix3f bnt(sweep[step].B, sweep[step].N, sweep[step].V);
+			surface.VN.push_back(bnt*negated);
+			if (step < sweep.size()-1 ) {
+				surface.VF.push_back(Tup3u(counter, counter + profile.size(), counter + 1));
+			}
+			else {
+				//push final faces into the loop
+				if (pstep == profile.size() - 1) {
+					break; 
+				}
+				surface.VF.push_back(Tup3u(counter, pstep, counter + 1));
+				surface.VF.push_back(Tup3u(pstep, pstep + 1, counter + 1));
+
+			}
+			if (step > 0) {
+				surface.VF.push_back(Tup3u(counter, counter - profile.size(), counter - 1));
+			}
+
 
 			counter++;
 		}
 		
 	}
-
+	
     return surface;
 }
 
