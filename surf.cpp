@@ -1,5 +1,6 @@
 #include "surf.h"
 #include "extra.h"
+#include "math.h"
 using namespace std;
 
 namespace
@@ -19,6 +20,18 @@ namespace
     }
 }
 
+vector<Tup3u> createFaces(unsigned stepNo,unsigned max, unsigned profileSize) {
+	vector<Tup3u> face;
+	if (stepNo/profileSize < max) {
+		face.push_back(Tup3u(stepNo, stepNo + 1, stepNo + profileSize));
+
+	}
+	if (stepNo/profileSize > 0) {
+		face.push_back(Tup3u(stepNo, stepNo - 1, stepNo - profileSize));
+	}
+	return face;
+}
+
 Surface makeSurfRev(const Curve &profile, unsigned steps)
 {
     Surface surface;
@@ -30,8 +43,34 @@ Surface makeSurfRev(const Curve &profile, unsigned steps)
     }
 
     // TODO: Here you should build the surface.  See surf.h for details.
+	float stepSize = (M_PI*2) / steps;
+	float currRotate=0;
+	unsigned counter = 0;
+	for (int i = 0; i <= steps; i++) {
+		for (int pointIdx = 0; pointIdx < profile.size(); pointIdx++) {
+			Matrix3f rotation = Matrix3f::rotateY(currRotate);
+			surface.VV.push_back(rotation*profile[pointIdx].V);
 
-    cerr << "\t>>> makeSurfRev called (but not implemented).\n\t>>> Returning empty surface." << endl;
+			//negate the normals
+			Vector3f negatedNormals(profile[pointIdx].N);
+			negatedNormals.negate();
+			surface.VN.push_back(rotation* negatedNormals);
+
+			//// draw the faces, both anti-clockwise
+			//if (i < steps) {
+			//	surface.VF.push_back(Tup3u(counter, counter + 1, counter + profile.size()));
+			//	
+			//}
+			//if (i > 0 ) {
+			//	surface.VF.push_back(Tup3u(counter, counter - 1, counter-profile.size()));
+			//}
+			vector<Tup3u> faces = createFaces(counter, steps, profile.size());
+			surface.VF.insert(surface.VF.end(), faces.begin(), faces.end());
+
+			counter++;
+		}
+		currRotate += stepSize;
+	}
  
     return surface;
 }
@@ -46,9 +85,17 @@ Surface makeGenCyl(const Curve &profile, const Curve &sweep )
         exit(0);
     }
 
-    // TODO: Here you should build the surface.  See surf.h for details.
 
-    cerr << "\t>>> makeGenCyl called (but not implemented).\n\t>>> Returning empty surface." <<endl;
+
+    // TODO: Here you should build the surface.  See surf.h for details.
+	for (unsigned step = 0; step < sweep.size(); step++) {
+		for (unsigned pstep = 0; pstep < profile.size(); pstep++) {
+			surface.VV.push_back(sweep[step].V + sweep[step].B*profile[pstep].V.x() + sweep[step].N*profile[pstep].V.y());
+			surface.VN.push_back(sweep[step].V + sweep[step].B*profile[pstep].N.x() + sweep[step].N*profile[pstep].N.y());
+			
+		}
+		
+	}
 
     return surface;
 }
