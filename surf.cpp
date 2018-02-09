@@ -20,17 +20,7 @@ namespace
     }
 }
 
-vector<Tup3u> createFaces(unsigned stepNo,unsigned max, unsigned profileSize) {
-	vector<Tup3u> face;
-	if (stepNo/profileSize < max) {
-		face.push_back(Tup3u(stepNo, stepNo + 1, stepNo + profileSize));
 
-	}
-	if (stepNo/profileSize > 0) {
-		face.push_back(Tup3u(stepNo, stepNo - 1, stepNo - profileSize));
-	}
-	return face;
-}
 
 Surface makeSurfRev(const Curve &profile, unsigned steps)
 {
@@ -56,16 +46,13 @@ Surface makeSurfRev(const Curve &profile, unsigned steps)
 			negatedNormals.negate();
 			surface.VN.push_back(rotation* negatedNormals);
 
-			//// draw the faces, both anti-clockwise
-			//if (i < steps) {
-			//	surface.VF.push_back(Tup3u(counter, counter + 1, counter + profile.size()));
-			//	
-			//}
-			//if (i > 0 ) {
-			//	surface.VF.push_back(Tup3u(counter, counter - 1, counter-profile.size()));
-			//}
-			vector<Tup3u> faces = createFaces(counter, steps, profile.size());
-			surface.VF.insert(surface.VF.end(), faces.begin(), faces.end());
+			if (i < steps) {
+				surface.VF.push_back(Tup3u(counter, counter + 1, counter + profile.size()));
+
+			}
+			if (i > 0) {
+				surface.VF.push_back(Tup3u(counter, counter - 1, counter - profile.size()));
+			}
 
 			counter++;
 		}
@@ -88,11 +75,15 @@ Surface makeGenCyl(const Curve &profile, const Curve &sweep )
 
 
     // TODO: Here you should build the surface.  See surf.h for details.
+	unsigned counter = 0;
 	for (unsigned step = 0; step < sweep.size(); step++) {
 		for (unsigned pstep = 0; pstep < profile.size(); pstep++) {
 			surface.VV.push_back(sweep[step].V + sweep[step].B*profile[pstep].V.x() + sweep[step].N*profile[pstep].V.y());
-			surface.VN.push_back(sweep[step].V + sweep[step].B*profile[pstep].N.x() + sweep[step].N*profile[pstep].N.y());
-			
+			Vector3f negated(profile[pstep].N);
+			negated.negate();
+			surface.VN.push_back(sweep[step].V + sweep[step].B*negated.x() + sweep[step].N*negated.y());
+
+			counter++;
 		}
 		
 	}
