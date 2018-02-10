@@ -18,6 +18,13 @@ namespace
     
         return true;
     }
+
+	// Need to check if the end and the start of the curve are around the same
+	inline bool approx(const Vector3f& lhs, const Vector3f& rhs)
+	{
+		const float eps = 1e-8f;
+		return (lhs - rhs).absSquared() < eps;
+	}
 }
 
 
@@ -46,12 +53,12 @@ Surface makeSurfRev(const Curve &profile, unsigned steps)
 			negatedNormals.negate();
 			surface.VN.push_back(rotation* negatedNormals);
 
-			if (i < steps) {
-				surface.VF.push_back(Tup3u(counter, counter + 1, counter + profile.size()));
 
-			}
 			if (i > 0) {
 				surface.VF.push_back(Tup3u(counter, counter - 1, counter - profile.size()));
+			}
+			if (i < steps) {
+				surface.VF.push_back(Tup3u(counter, counter + 1, counter + profile.size()));
 			}
 
 			counter++;
@@ -65,15 +72,17 @@ Surface makeSurfRev(const Curve &profile, unsigned steps)
 Surface makeGenCyl(const Curve &profile, const Curve &sweep )
 {
     Surface surface;
-
     if (!checkFlat(profile))
     {
         cerr << "genCyl profile curve must be flat on xy plane." << endl;
         exit(0);
     }
 
-
-
+	// check if the curve forms a loop. 
+	bool isLoop;
+	if (isLoop = approx(sweep.back().V, sweep.front().V)) {
+		cerr << "this curve is a loop" << endl;
+	}
     // TODO: Here you should build the surface.  See surf.h for details.
 	unsigned counter = 0;
 	for (unsigned step = 0; step < sweep.size(); step++) {
@@ -83,23 +92,19 @@ Surface makeGenCyl(const Curve &profile, const Curve &sweep )
 			negated.negate();
 			Matrix3f bnt(sweep[step].B, sweep[step].N, sweep[step].V);
 			surface.VN.push_back(bnt*negated);
-			if (step < sweep.size()-1 ) {
-				surface.VF.push_back(Tup3u(counter, counter + profile.size(), counter + 1));
-			}
-			else {
-				//push final faces into the loop
-				if (pstep == profile.size() - 1) {
-					break; 
-				}
-				surface.VF.push_back(Tup3u(counter, pstep, counter + 1));
-				surface.VF.push_back(Tup3u(pstep, pstep + 1, counter + 1));
-
-			}
 			if (step > 0) {
 				surface.VF.push_back(Tup3u(counter, counter - profile.size(), counter - 1));
 			}
-
-
+			if (step < sweep.size()-1) {
+				surface.VF.push_back(Tup3u(counter, counter + profile.size(), counter + 1));
+			}
+			else if (pstep != profile.size() - 1 && isLoop) {
+			
+				//push final faces if it is a loop.
+				surface.VF.push_back(Tup3u(counter, pstep, counter + 1));
+				surface.VF.push_back(Tup3u(pstep, pstep + 1, counter + 1));
+			
+			}
 			counter++;
 		}
 		

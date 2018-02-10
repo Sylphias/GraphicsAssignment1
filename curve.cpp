@@ -100,6 +100,8 @@ Curve evalBezier( const vector< Vector3f >& P, unsigned steps )
 		if(sectionNum==0){
 
 			// For loops, we need to set the arbVect to the binormal of the last value... ask if its really efficient to recalc the whole thing?
+
+			// After quite awhile of thinking, I guess it's unavoidable to interpolate the difference in angle...
 			Vector3f arbVect(0, 0, 1);
 			oldBinormal = arbVect.normalized();
 		}
@@ -126,8 +128,24 @@ Curve evalBezier( const vector< Vector3f >& P, unsigned steps )
 			t += stepValue;
 
 		}
+
+		
 	}
 
+	// Find the difference in angle between the last and the first normal if the curve is a loop.
+	if (approx(c.back().V, c.front().V)) {
+		float angle = acos( Vector3f::dot(c.back().N, c.front().N) / (c.back().N.abs()*c.front().N.abs()));
+		
+		// rotate every point after the start by a fixed step
+		float angleStep = angle / (c.size() - 1);
+		float currAngle = angleStep;
+		for (unsigned point = 1; point < c.size(); point++) {
+			//rotate the normal and binormal wrt to curve as axis
+			c[point].B = Matrix3f::rotation(c[point].T, currAngle)*c[point].B ;
+			c[point].N = Matrix3f::rotation(c[point].T, currAngle)*c[point].N;
+			currAngle += angleStep;
+		}
+	}
 
     cerr << "\t>>> evalBezier has been called with the following input:" << endl;
 
