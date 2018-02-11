@@ -54,10 +54,10 @@ Surface makeSurfRev(const Curve &profile, unsigned steps)
 			surface.VN.push_back(rotation* negatedNormals);
 
 
-			if (i > 0) {
+			if (i > 0 && pointIdx !=0) {
 				surface.VF.push_back(Tup3u(counter, counter - 1, counter - profile.size()));
 			}
-			if (i < steps) {
+			if (i < steps && pointIdx != profile.size() - 1) {
 				surface.VF.push_back(Tup3u(counter, counter + 1, counter + profile.size()));
 			}
 
