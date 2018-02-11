@@ -1,5 +1,6 @@
 #include "curve.h"
 #include "extra.h"
+#include <cmath>
 #ifdef WIN32
 #include <windows.h>
 #endif
@@ -132,17 +133,19 @@ Curve evalBezier( const vector< Vector3f >& P, unsigned steps )
 		
 	}
 
-	// Find the difference in angle between the last and the first normal if the curve is a loop.
-	if (approx(c.back().V, c.front().V)) {
-		float angle = acos( Vector3f::dot(c.back().N, c.front().N) / (c.back().N.abs()*c.front().N.abs()));
+	// Find the difference in angle between the last and the first normal if the curve is a loop and the normals are different
+	if (approx(c.back().V, c.front().V) && !approx(c.back().N,c.front().N)) {
+		
+
+		float angle = acos( Vector3f::dot( c.front().N, c.back().N));
 		
 		// rotate every point after the start by a fixed step
 		float angleStep = angle / (c.size() - 1);
 		float currAngle = angleStep;
 		for (unsigned point = 1; point < c.size(); point++) {
-			//rotate the normal and binormal wrt to curve as axis
-			c[point].B = Matrix3f::rotation(c[point].T, currAngle)*c[point].B ;
-			c[point].N = Matrix3f::rotation(c[point].T, currAngle)*c[point].N;
+			//rotate the normal and binormal wrt to tangent as axis
+			c[point].B = Matrix3f::rotation(-1*c[point].T, currAngle)*c[point].B ;
+			c[point].N = Matrix3f::rotation(-1 * c[point].T, currAngle)*c[point].N;
 			currAngle += angleStep;
 		}
 	}
