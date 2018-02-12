@@ -31,6 +31,12 @@ namespace
 							4.0f / 6, 0, -6.0f / 6, 3.0f / 6,
 							1.0f / 6, 3.0f / 6, 3.0f / 6, -3.0f / 6,
 							0, 0, 0, 1.0f / 6);
+
+	Matrix4f catmullBasis(0, -1.0f/2, 1, -1.0f/2,
+		1, 0, -5.0f/2, 3.0f/2,
+		0, 1.0f/2, 2, -3.0f/2,
+		0, 0, -1.0f/2, 1.0f/2
+	);
     
 }
 
@@ -219,6 +225,36 @@ Curve evalBspline( const vector< Vector3f >& P, unsigned steps )
     // Return an empty curve right now.
     return  evalBezier(bezierPoints, steps);;
 }
+
+Curve evalCatmullRom(const std::vector< Vector3f >& P, unsigned steps) {
+	// Check
+	if (P.size() < 4)
+	{
+		cerr << "evalCatmullRom must be called with 4 or more control points." << endl;
+		exit(0);
+	}
+
+	vector<Vector3f> bezierPoints;
+	for (unsigned i = 0; i < P.size()-3; i++) {
+		Matrix4f catmullSeg;
+		for (unsigned j = 0; j < 4; j++) {
+			int offsetted = i + j;// segmentize using offsets of up to 4
+			Vector4f vec(P[offsetted].xyz(), 0);
+			catmullSeg.setCol(j, vec);
+		}
+		Matrix4f changedBasis(catmullSeg*catmullBasis*(bezSplineBasis.inverse()));
+		int startingPt = 1;
+		if (i == 0) {
+			startingPt = 0;
+		}
+		for (unsigned j = startingPt; j < 4; j++) {
+			bezierPoints.push_back(changedBasis.getCol(j).xyz());
+		}
+
+	}
+	return evalBezier(bezierPoints,steps);
+}
+
 
 Curve evalCircle( float radius, unsigned steps )
 {

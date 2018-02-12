@@ -116,6 +116,15 @@ bool parseFile(istream &in,
             dims.push_back(2);
             if (named) curveIndex[objName] = dims.size()-1;
         }
+		else if (objType == "cat2")
+		{
+			cerr << " reading cat2 " << "[" << objName << "]" << endl;
+			in >> steps;
+			curves.push_back(evalCatmullRom(cpsToAdd = readCps(in, 2), steps));
+			curveNames.push_back(objName);
+			dims.push_back(2);
+			if (named) curveIndex[objName] = dims.size() - 1;
+		}
         else if (objType == "bez3")
         {
             cerr << " reading bez3 " << "[" << objName << "]" << endl;
@@ -135,6 +144,15 @@ bool parseFile(istream &in,
             dims.push_back(3);
             if (named) curveIndex[objName] = dims.size()-1;
         }
+		else if (objType == "cat3")
+		{
+			cerr << " reading cat3 " << "[" << objName << "]" << endl;
+			in >> steps;
+			curves.push_back(evalCatmullRom(cpsToAdd = readCps(in, 3), steps));
+			curveNames.push_back(objName);
+			dims.push_back(3);
+			if (named) curveIndex[objName] = dims.size() - 1;
+		}
         else if (objType == "srev")
         {
             cerr << " reading srev " << "[" << objName << "]" << endl;
