@@ -15,6 +15,8 @@ struct CurvePoint
     Vector3f T; // Tangent  (unit)
     Vector3f N; // Normal   (unit)
     Vector3f B; // Binormal (unit)
+	Vector3f K; // Curvature Magnitude
+
 };
 
 // This is just a handy shortcut.

@@ -1,4 +1,4 @@
-bez3 sweep1 50 7
+bez3 sweep1 150 7
      [0 0 0]
      [10.83 6.35 0]
      [3.12 14.35 0]
@@ -8,7 +8,7 @@ bez3 sweep1 50 7
      [0 0 0]
 circ profile1 50 0.4
 
-bez2 base 30  7
+bez2 base 150  7
 [0 -0.5]
 [-4 0]
 [-6 2.3]

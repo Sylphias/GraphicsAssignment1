@@ -1,6 +1,7 @@
 #include "surf.h"
 #include "extra.h"
 #include "math.h"
+#include <algorithm>
 using namespace std;
 
 namespace
@@ -52,7 +53,7 @@ Surface makeSurfRev(const Curve &profile, unsigned steps)
 			Vector3f negatedNormals(profile[pointIdx].N);
 			negatedNormals.negate();
 			surface.VN.push_back(rotation* negatedNormals);
-
+			surface.VK.push_back(profile[pointIdx].K);
 
 			if (i > 0 && pointIdx !=0) {
 				surface.VF.push_back(Tup3u(counter, counter - 1, counter - profile.size()));
@@ -92,6 +93,7 @@ Surface makeGenCyl(const Curve &profile, const Curve &sweep )
 			negated.negate();
 			Matrix3f bnt(sweep[step].B, sweep[step].N, sweep[step].V);
 			surface.VN.push_back(bnt*negated);
+			surface.VK.push_back(sweep[step].K);
 			if (step > 0) {
 				surface.VF.push_back(Tup3u(counter, counter - profile.size(), counter - 1));
 			}
@@ -124,7 +126,6 @@ void drawSurface(const Surface &surface, bool shaded)
         // positions.  Just set these in drawScene();
         glEnable(GL_LIGHTING);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
         // This tells openGL to *not* draw backwards-facing triangles.
         // This is more efficient, and in addition it will help you
         // make sure that your triangles are drawn in the right order.
@@ -136,13 +137,24 @@ void drawSurface(const Surface &surface, bool shaded)
         glDisable(GL_LIGHTING);
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         
-        glColor4f(0.4f,0.4f,0.4f,1.f);
+        glColor4f(1.0f,0.4f,0.4f,1.f);
         glLineWidth(1);
     }
+	// below is the code for getting the curvature. I didnt like the colors so I changed it.
+	//auto result = std::minmax_element(surface.VK.begin(), surface.VK.end());
+	//float min = *result.first;
+	//float max = *result.second;
+	//float diff = max - min;
 
     glBegin(GL_TRIANGLES);
     for (unsigned i=0; i<surface.VF.size(); i++)
-    {
+	{
+
+		// I used the directions of the vectors to create colors instead.
+		//float normalisedColor = (surface.VK[surface.VF[i][0]] - min) / diff;
+		float vectorSum = (surface.VK[surface.VF[i][0]].x() + surface.VK[surface.VF[i][0]].y() + surface.VK[surface.VF[i][0]].z());
+		GLfloat diffColor[] = { surface.VK[surface.VF[i][0]].x() / vectorSum, surface.VK[surface.VF[i][0]].y() /vectorSum , + surface.VK[surface.VF[i][0]].z() / vectorSum , 1 };
+		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, diffColor);
         glNormal(surface.VN[surface.VF[i][0]]);
         glVertex(surface.VV[surface.VF[i][0]]);
         glNormal(surface.VN[surface.VF[i][1]]);

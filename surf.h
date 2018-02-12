@@ -19,6 +19,7 @@ struct Surface
     std::vector< Vector3f > VV;
     std::vector< Vector3f > VN;
     std::vector< Tup3u > VF;
+	std::vector< Vector3f > VK;
 };
 
 // This draws the surface.  Draws the surfaces with smooth shading if
