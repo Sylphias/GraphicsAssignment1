@@ -17,10 +17,13 @@ one3Bonus.exe - executable with bonuses implemented
 
 ## Bonuses Attempted:
 - Easy 1
+
 ![using vectors2](images/colorful.PNG)
 - Easy 2
+
 ![catmullrom spline](images/Catmull.PNG)
 - Easy 4
+
 ![joined stuff](images/weirder.PNG)
 ## Notes on Bonuses
 Although the surface color one asked me to change I didnt like the color that was generated based off the curvature (was a little flat)
